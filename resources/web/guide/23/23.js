@@ -779,7 +779,7 @@ function RequestCustomFilaments() {
 }
 
 var g_customFilaments = [];
-var g_customSortOrder = 'desc'; // 'desc' or 'asc'
+var g_customSortOrder = 'desc'; // 'name', 'name_desc', 'desc', 'asc', or 'type'
 
 function UpdateCustomFilaments(CFList) {
     g_customFilaments = CFList || [];
@@ -812,7 +812,12 @@ function renderCustomFilaments() {
     $('#CFilament_Count').text((_t('t242') || 'Custom filaments: 0').replace('0', list.length));
 
         // Sort logic
-        if (g_customSortOrder === 'type') {
+        if (g_customSortOrder === 'name' || g_customSortOrder === 'name_desc') {
+            list.sort(function(a, b) {
+                var order = (a['name'] || '').localeCompare(b['name'] || '', undefined, { sensitivity: 'base', numeric: true });
+                return g_customSortOrder === 'name_desc' ? -order : order;
+            });
+        } else if (g_customSortOrder === 'type') {
             list.sort(function(a, b) {
                 var ta = (a['type'] || '').toLowerCase();
                 var tb = (b['type'] || '').toLowerCase();
@@ -876,7 +881,7 @@ function renderCustomFilaments() {
                 strHtml += renderCustomGroup(typeOrder[i], typeGroups[typeOrder[i]], true);
             }
     } else {
-            // Ascending order: just flat list
+            // Name or oldest-first order: just flat list
             strHtml = renderCustomGroup('', list, false);
     }
     
