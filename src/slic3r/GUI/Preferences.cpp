@@ -1953,6 +1953,7 @@ ResetWarningsDialog::ResetWarningsDialog(wxWindow *parent) : DPIDialog(parent, w
     auto *det_sizer = new wxBoxSizer(wxVERTICAL);
     auto *det_text  = new wxStaticText(m_details_panel, wxID_ANY,
                                        _L("- Sync printer presets after loading a file\n"
+                                          "- Custom filament list sort order\n"
                                           "- \"Load 3MF\" dialog settings\n"
                                           "- Executing post-processing scripts\n"
                                           "- Support structure recommendation prompt\n"
@@ -2019,6 +2020,7 @@ void PreferencesDialog::on_reset_all_warnings()
     // Keys that the various "Don't show again"-style dialogs persist their
     // dismissal choice under. Erasing them re-enables the corresponding dialog.
     app_config->erase("app", "sync_after_load_file_show_flag");
+    app_config->erase("app", "custom_filament_sort_order");
     app_config->erase("app", "skip_non_bambu_3mf_warning");
     app_config->erase("app", "post_process_script_choice");
     app_config->erase("app", "no_warn_mixed_sublayer_variable_layer");
@@ -2037,6 +2039,7 @@ void PreferencesDialog::on_reset_preferences()
     // Reset to factory defaults. Touch only UI preference keys — keep vendor /
     // printer / preset state intact, which AppConfig::reset() would also clear.
     static const char *kPrefKeys[] = {
+        "custom_filament_sort_order",
         "language",
         // "region", keep this intensinaly to avoid re-login
         "use_inches",

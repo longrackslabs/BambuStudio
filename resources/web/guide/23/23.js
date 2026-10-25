@@ -125,7 +125,7 @@ function HandleStudio(pVal) {
             ChooseDefaultFilament();
         }
     } else if (strCmd == 'update_custom_filaments') {
-        UpdateCustomFilaments(pVal['data']);
+        UpdateCustomFilaments(pVal['data'], pVal['sort_order']);
     }
 }
 
@@ -781,13 +781,21 @@ function RequestCustomFilaments() {
 var g_customFilaments = [];
 var g_customSortOrder = 'desc'; // 'name', 'name_desc', 'desc', 'asc', or 'type'
 
-function UpdateCustomFilaments(CFList) {
+function UpdateCustomFilaments(CFList, sortOrder) {
+    var validOrders = ['desc', 'asc', 'type', 'name', 'name_desc'];
+    g_customSortOrder = validOrders.indexOf(sortOrder) >= 0 ? sortOrder : 'desc';
+    $('#CFilament_Sort').val(g_customSortOrder);
     g_customFilaments = CFList || [];
     renderCustomFilaments();
 }
 
 function onCustomSortChange() {
     g_customSortOrder = $('#CFilament_Sort').val();
+    SendWXMessage(JSON.stringify({
+        sequence_id: Math.round(new Date() / 1000),
+        command: 'set_custom_filament_sort_order',
+        sort_order: g_customSortOrder
+    }));
     renderCustomFilaments();
 }
 
