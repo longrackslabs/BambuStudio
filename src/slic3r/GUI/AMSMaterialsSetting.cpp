@@ -1014,6 +1014,20 @@ void AMSMaterialsSetting::on_select_close(wxCommandEvent &event)
     Close();
 }
 
+static wxString material_color_label(const wxString& filament_id, const FilamentColor& filament_color)
+{
+    wxString name;
+    if (auto* query = wxGetApp().get_filament_color_code_query())
+        name = query->GetFilaColorName(filament_id, filament_color);
+
+    wxString hex_values;
+    for (const auto& color : filament_color.GetColors()) {
+        if (!hex_values.IsEmpty()) hex_values += ", ";
+        hex_values += color.IsOk() ? color.GetAsString(wxC2S_HTML_SYNTAX) : _L("Unknown");
+    }
+    return name.IsEmpty() ? hex_values : name + " " + hex_values;
+}
+
 void AMSMaterialsSetting::set_color(wxColour color)
 {
     //m_clrData->SetColour(color);
@@ -1024,8 +1038,7 @@ void AMSMaterialsSetting::set_color(wxColour color)
     FilamentColor fila_color;
     fila_color.AddColor(color);
     fila_color.EndSet(m_clr_picker->ctype);
-    auto clr_query = GUI::wxGetApp().get_filament_color_code_query();
-    m_clr_name->SetLabelText(clr_query->GetFilaColorName(ams_filament_id, fila_color));
+    m_clr_name->SetLabelText(material_color_label(ams_filament_id, fila_color));
     if (m_clr_picker->GetParent()) m_clr_picker->GetParent()->Layout();
 }
 
@@ -1051,8 +1064,7 @@ void AMSMaterialsSetting::set_colors(std::vector<wxColour> colors)
         FilamentColor fila_color;
         for (const auto& clr : colors) { fila_color.AddColor(clr); }
         fila_color.EndSet(m_clr_picker->ctype);
-        auto clr_query = GUI::wxGetApp().get_filament_color_code_query();
-        m_clr_name->SetLabelText(clr_query->GetFilaColorName(ams_filament_id, fila_color));
+        m_clr_name->SetLabelText(material_color_label(ams_filament_id, fila_color));
         if (m_clr_picker->GetParent()) m_clr_picker->GetParent()->Layout();
     }
 }
