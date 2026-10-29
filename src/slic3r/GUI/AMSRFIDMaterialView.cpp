@@ -2,6 +2,8 @@
 #include "GUI_App.hpp"
 #include "I18N.hpp"
 #include "MsgDialog.hpp"
+#include "EncodedFilament.hpp"
+#include "FilamentBitmapUtils.hpp"
 
 #include "DeviceCore/DevConfig.h"
 #include "DeviceCore/DevExtruderSystem.h"
@@ -38,26 +40,21 @@ void AMSRFIDMaterialView::create()
     panel_top->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     auto* sizer_top = new wxBoxSizer(wxHORIZONTAL);
 
-    m_clr_picker = new ColorPicker(panel_top, wxID_ANY);
-    m_clr_picker->set_show_full(true);
-    m_clr_picker->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
-    m_clr_picker->SetMinSize(FromDIP(wxSize(48, 48)));
-    m_clr_picker->SetMaxSize(FromDIP(wxSize(48, 48)));
-    m_clr_picker->SetSize(FromDIP(wxSize(48, 48)));
-    // Read-only: no click binding
-    sizer_top->Add(m_clr_picker, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(12));
+    m_color_swatch = new wxStaticBitmap(panel_top, wxID_ANY, wxNullBitmap);
+    m_color_swatch->SetMinSize(FromDIP(wxSize(48, 48)));
+    sizer_top->Add(m_color_swatch, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(12));
 
     auto* sizer_names = new wxBoxSizer(wxVERTICAL);
     m_lbl_brand = new wxStaticText(panel_top, wxID_ANY, wxEmptyString);
-    m_lbl_brand->SetFont(Label::Body_14);
+    m_lbl_brand->SetFont(Label::Body_13);
     m_lbl_brand->SetForegroundColour(AMS_MATERIALS_SETTING_GREY900);
 
     m_lbl_color_name = new wxStaticText(panel_top, wxID_ANY, wxEmptyString);
-    m_lbl_color_name->SetFont(Label::Body_13);
-    m_lbl_color_name->SetForegroundColour(AMS_MATERIALS_SETTING_GREY700);
+    m_lbl_color_name->SetFont(Label::Head_14);
+    m_lbl_color_name->SetForegroundColour(AMS_MATERIALS_SETTING_GREY900);
 
-    sizer_names->Add(m_lbl_brand,      0, wxBOTTOM, FromDIP(2));
-    sizer_names->Add(m_lbl_color_name, 0, 0, 0);
+    sizer_names->Add(m_lbl_color_name, 0, wxBOTTOM, FromDIP(2));
+    sizer_names->Add(m_lbl_brand, 0, 0, 0);
     sizer_top->Add(sizer_names, 1, wxALIGN_CENTER_VERTICAL, 0);
 
     panel_top->SetSizer(sizer_top);
@@ -261,16 +258,39 @@ void AMSRFIDMaterialView::Popup(MachineObject* obj_, int ams_id_, int slot_id_,
         }
     }
 
-    // colour swatch
-    m_clr_picker->ctype = ctype;
-    if (!cols.empty())
-        m_clr_picker->set_colors(cols);
-    else
-        m_clr_picker->set_color(color);
+    FilamentColor filament_color;
+    m_swatch_colors = cols.empty() ? std::vector<wxColour>{color} : cols;
+    for (const auto& swatch_color : m_swatch_colors)
+        filament_color.AddColor(swatch_color);
+    filament_color.EndSet(ctype);
+    m_swatch_gradient = filament_color.m_color_type == FilamentColor::ColorType::GRADIENT_CLR;
+    m_color_swatch->SetBitmap(create_filament_bitmap(m_swatch_colors, FromDIP(wxSize(48, 48)), m_swatch_gradient));
 
-    // brand / colour name
-    m_lbl_brand->SetLabel(brand_name.IsEmpty() ? _L("Unknown") : brand_name);
-    m_lbl_color_name->SetLabel(color_name);
+    wxString display_color = color_name;
+    wxString product_color_code;
+    if (!ams_filament_id.empty()) {
+        if (auto* query = wxGetApp().get_filament_color_code_query()) {
+            if (auto* info = query->GetFilaInfo(wxString::FromUTF8(ams_filament_id), filament_color)) {
+                display_color = info->GetFilaColorName();
+                product_color_code = info->GetFilaColorCode();
+            }
+        }
+    }
+    wxString display_brand = brand_name.IsEmpty() ? _L("Unknown") : brand_name;
+    if (!brand_name.IsEmpty() && !brand_name.StartsWith("Bambu"))
+        display_brand = "Bambu " + brand_name;
+    if (!product_color_code.IsEmpty())
+        display_brand += " (" + product_color_code + ")";
+    m_lbl_brand->SetLabel(display_brand);
+    m_lbl_brand->Wrap(FromDIP(262));
+
+    wxString rgb_text;
+    for (const auto& swatch_color : m_swatch_colors) {
+        if (!rgb_text.IsEmpty()) rgb_text += ", ";
+        rgb_text += swatch_color.IsOk() ? swatch_color.GetAsString(wxC2S_HTML_SYNTAX) : _L("Unknown");
+    }
+    m_lbl_color_name->SetLabel(display_color.IsEmpty() ? rgb_text : display_color + " " + rgb_text);
+    m_lbl_color_name->Wrap(FromDIP(262));
 
     // nozzle temperature
     if (!temp_min.IsEmpty() && !temp_max.IsEmpty()) {
@@ -389,9 +409,9 @@ void AMSRFIDMaterialView::on_dpi_changed(const wxRect& /*suggested_rect*/)
 {
     m_button_reset->SetMinSize(AMS_MATERIALS_SETTING_BUTTON_SIZE);
     m_button_confirm->SetMinSize(AMS_MATERIALS_SETTING_BUTTON_SIZE);
-    m_clr_picker->SetMinSize(FromDIP(wxSize(48, 48)));
-    m_clr_picker->SetMaxSize(FromDIP(wxSize(48, 48)));
-    m_clr_picker->SetSize(FromDIP(wxSize(48, 48)));
+    m_color_swatch->SetMinSize(FromDIP(wxSize(48, 48)));
+    if (!m_swatch_colors.empty())
+        m_color_swatch->SetBitmap(create_filament_bitmap(m_swatch_colors, FromDIP(wxSize(48, 48)), m_swatch_gradient));
     apply_fixed_size();
 }
 

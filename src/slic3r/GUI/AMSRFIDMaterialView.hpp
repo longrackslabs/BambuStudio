@@ -2,6 +2,7 @@
 #define slic3r_AMSRFIDMaterialView_hpp_
 
 #include "GUI_Utils.hpp"
+#include <wx/statbmp.h>
 #include "DeviceManager.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/Label.hpp"
@@ -33,7 +34,9 @@ private:
     void on_reset();
 
     // top card
-    ColorPicker*    m_clr_picker     {nullptr};
+    wxStaticBitmap* m_color_swatch   {nullptr};
+    std::vector<wxColour> m_swatch_colors;
+    bool m_swatch_gradient {false};
     wxStaticText*   m_lbl_brand      {nullptr};
     wxStaticText*   m_lbl_color_name {nullptr};
 
